@@ -24,18 +24,22 @@ init_acme() {
     cp -r /opt/acme.sh/* "$ACME_HOME"/
     chmod +x "$ACME"
   fi
+  # Fix any legacy #!/bin/bash shebang in persisted volume
+  if [ -f "$ACME" ]; then
+    sed -i '1s|^#!/bin/bash|#!/usr/bin/env sh|' "$ACME" 2>/dev/null || true
+  fi
   if [ ! -d "$ACME_HOME/$ACME_MAIN" ]; then
     log "acme: issuing for $ACME_DOMAINS"
-    $ACME --set-default-ca --server letsencrypt --home "$ACME_HOME" || log "acme: set-ca failed (continuing)"
+    /bin/sh "$ACME" --set-default-ca --server letsencrypt --home "$ACME_HOME" || log "acme: set-ca failed (continuing)"
     # shellcheck disable=SC2086
-    $ACME --issue --dns dns_cf $ACME_DOMAINS --home "$ACME_HOME" || { log "acme: issue FAILED"; return 1; }
+    /bin/sh "$ACME" --issue --dns dns_cf $ACME_DOMAINS --home "$ACME_HOME" || { log "acme: issue FAILED"; return 1; }
     install_cert
   fi
 }
 
 install_cert() {
   log "acme: installing cert to $CERT_DIR"
-  $ACME --install-cert -d "$ACME_MAIN" \
+  /bin/sh "$ACME" --install-cert -d "$ACME_MAIN" \
     --key-file       "$CERT_DIR/privkey.pem" \
     --fullchain-file "$CERT_DIR/fullchain.pem" \
     --ca-file        "$CERT_DIR/chain.pem" \
@@ -63,7 +67,7 @@ do_ddns() {
 run_once() {
   do_ddns || true
   log "acme: cron"
-  $ACME --cron --home "$ACME_HOME" || log "acme: cron FAILED (continuing)"
+  /bin/sh "$ACME" --cron --home "$ACME_HOME" || log "acme: cron FAILED (continuing)"
   [ -f "$CERT_DIR/fullchain.pem" ] || install_cert || true
 }
 
