@@ -28,7 +28,7 @@ init_acme() {
   if [ -f "$ACME" ]; then
     sed -i '1s|^#!/bin/bash|#!/usr/bin/env sh|' "$ACME" 2>/dev/null || true
   fi
-  if [ ! -d "$ACME_HOME/$ACME_MAIN" ]; then
+  if [ ! -d "$ACME_HOME/$ACME_MAIN" ] && [ ! -d "$ACME_HOME/${ACME_MAIN}_ecc" ]; then
     log "acme: issuing for $ACME_DOMAINS"
     /bin/sh "$ACME" --set-default-ca --server letsencrypt --home "$ACME_HOME" || log "acme: set-ca failed (continuing)"
     # shellcheck disable=SC2086
